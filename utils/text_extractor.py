@@ -2,14 +2,13 @@
 # This file contains utility logic that converts various files' contents to usable text. 
 #
 # Author: Andrew Polyak
-# Version: May 22, 2025
+# Version: May 23, 2025
 ##
 
 import textract # Easy text extraction all-in-one interface
 import easyocr # Better for hand-written text
 
-import os
-os.environ['PATH'] += os.pathsep + r'C:\Program Files\Tesseract' # TODO Remove this in non-local environment
+import image_processor # Interface for image pre-processing tasks
 
 class TextExtractor():
     """
@@ -18,7 +17,10 @@ class TextExtractor():
     def __init__(self):
         super().__init__()
 
-        self.easy_ocr = easyocr.Reader(["en"]) # English only # TODO for now...
+        self.easy_ocr: easyocr.Reader = easyocr.Reader(["en"]) # English only for now
+        self.img_processor: image_processor.ImageProcessor = image_processor.ImageProcessor()
+
+        self.API_available = False # TODO run process to determine this
 
     def extract_text(self,
                      file_path: str,
@@ -35,18 +37,24 @@ class TextExtractor():
             The raw text from the document
         """
 
-        # EasyOCR is the best free method of hand written text extraction.
-        # In future versions, perhaps a more advanced, paid API can be used
+        # Hand-written documents require specialized processing
         if hand_written:
-            # TODO Must implement image pre-processing to improve performance... Use https://www.freecodecamp.org/news/getting-started-with-tesseract-part-ii-f7f9a0899b3f/
+            # Pre-process image to improve performance
+            pre_processed_img = self.img_processor.pre_process_image(file_path=file_path)
 
-            # Extract hand writing content
-            extracted_text = self.easy_ocr.readtext(image=file_path,
-                                                    detail=0,
-                                                    paragraph=True)[0]
-
+            # Attempt to use advanced Azure API for handwriting recognition
+            if self.API_available:
+                    # TODO Use this free OCR API: https://azure.microsoft.com/en-us/products/ai-services/ai-vision?msockid=2b3c822dd43d6f6f08529606d5cd6ea8#Pricing-5
+                    pass
+            
+            # If API unavailable, rely on lighter-weight, free method
+            # TODO: Accuracy is unusable with this method...
+            else:
+                extracted_text: str = self.easy_ocr.readtext(image=pre_processed_img,
+                                                            detail=0,
+                                                            paragraph=True)[0]
+        # For non-hand-written documents, use Textract
         else:
-            # Extract hand written content
             extracted_text: str = textract.process(filename=file_path)
 
         return extracted_text
@@ -56,7 +64,7 @@ class TextExtractor():
 def main():
     extractor = TextExtractor()
     
-    print()
+    print("Starting test...\n\n")
     print(f"Word Printed Document Conversion:\n{extractor.extract_text(file_path="test documents/Bioluminescence_Sample_Text.docx")}\n\n")
     print(f"JPEG Hand Written Document Conversion:\n{extractor.extract_text(file_path="test documents/write-hand-written-notes-and-assignments-for-you.jpeg", hand_written=True)}\n\n")
 
