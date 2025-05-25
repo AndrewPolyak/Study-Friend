@@ -1,0 +1,21 @@
+10 Fun Facts About Computer Science
+
+1. The first computer "bug" was an actual insect! In 1947, engineers found that the Harvard Mark II computer was malfunctioning because a moth got stuck in a relay. They removed it and taped it into the logbook, calling it the "first actual case of a bug being found."
+
+2. The term "byte" was coined in 1956 by Werner Buchholz while working on the IBM 7030 Stretch computer. It was chosen to represent a group of bits, typically 8, and was a play on the word "bite" to avoid confusion with "bit."
+
+3. The first computer mouse was made of wood! Invented in 1964 by Douglas Engelbart, it was a wooden box with two wheels and a button, used to navigate a graphical user interface.
+
+4. The first website ever created is still online! Launched on August 6, 1991, by Tim Berners-Lee at CERN, it explained the World Wide Web. You can still visit it at its original URL.
+
+5. The shortest war in history lasted 38 minutes, but the shortest computer virus, called "Slammer," spread worldwide in 10 minutes in 2003, infecting 75,000 servers and causing massive internet disruptions.
+
+6. The original Macintosh had 128 KB of RAM, less than what's needed to load a single modern webpage. For comparison, a typical smartphone today has over 4 GB of RAM—over 30,000 times more!
+
+7. The first "Turing-complete" computer, the Z3, was built in 1941 by Konrad Zuse in Germany. It could theoretically perform any computation, making it a precursor to modern computers.
+
+8. The programming language Python was named after Monty Python's Flying Circus, not the snake. Guido van Rossum, its creator, was a fan of the comedy troupe and wanted a fun, memorable name.
+
+9. The first video game, "Spacewar!", was created in 1962 on a PDP-1 computer. It took 200 hours to develop and featured two spaceships battling in space, laying the groundwork for modern gaming.
+
+10. The concept of "CAPTCHA" (those "I'm not a robot" tests) was invented to help digitize books. Early CAPTCHAs asked users to type distorted text to verify they weren't bots, while also helping transcribe scanned books for projects like Google Books.

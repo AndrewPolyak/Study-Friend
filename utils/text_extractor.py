@@ -2,23 +2,24 @@
 # This file contains utility logic that converts various files' contents to usable text. 
 #
 # Author: Andrew Polyak
-# Version: May 23, 2025
+# Version: May 25, 2025
 ##
 
 import json
 import time
 import io
 
+import pathlib
+
 from PIL import Image
 
-import textract # Easy text extraction all-in-one interface
-import easyocr # Free, light-weight, hand-written text extractor
+import textract # Encompasses extraction for a good number of types out-of-the-box
 
-import image_processor # Interface for image pre-processing tasks
+# For other extraction tasks that textract doesn't easily support
+import PyPDF2
 
 # Azure Computer Vision API-related modules
 from azure.cognitiveservices.vision.computervision import ComputerVisionClient
-from azure.cognitiveservices.vision.computervision.models import VisualFeatureTypes
 from msrest.authentication import CognitiveServicesCredentials
 from azure.cognitiveservices.vision.computervision.models import OperationStatusCodes
 
@@ -29,15 +30,10 @@ class TextExtractor():
     """
     def __init__(self):
         super().__init__()
-
-        self.easy_ocr: easyocr.Reader = easyocr.Reader(["en"]) # English only for now
-        self.img_processor: image_processor.ImageProcessor = image_processor.ImageProcessor()
-
-        self.AZURE_CRED: json = None
-
+        
         # Access Azure credentials
         with open(".venv/azure_credentials.json", "r") as credentials: # TODO fix path prior to release
-            self.AZURE_CRED = json.load(credentials)
+            self.AZURE_CRED: json = json.load(credentials)
             print("Azure credentials successfully loaded")
 
 
@@ -45,8 +41,7 @@ class TextExtractor():
                      file_path: str,
                      hand_written: bool = False) -> str:
         """
-        This function returns the text from most standard files based on the
-        Textract interface.
+        This function returns the text from most standard files and images.
         
         Args:
             file_path: str --> The file path of the document being processed
@@ -56,48 +51,70 @@ class TextExtractor():
             The raw text from the document
         """
 
+        extracted_text: str = ""
+        extension = pathlib.Path(file_path).suffix # Get file extension (e.g., .pdf)
+
         # Hand-written documents require specialized processing
         if hand_written:
             try: # Attempt to use advanced Azure API for handwriting recognition
-                extracted_text: str = self.azure_ocr(image=file_path)
+                extracted_text = self.azure_ocr(image=file_path, ext=extension)
             
-            except: # If API unavailable, rely on lighter-weight, free method
-                print("Azure connection failed... using EasyOCR")
-                pre_processed_img = self.img_processor.pre_process_image(file_path=file_path) # Pre-process image to improve performance
-
-                extracted_text: str = self.easy_ocr.readtext(image=pre_processed_img, # TODO: Accuracy is unusable with this method...
-                                                            detail=0,
-                                                            paragraph=True)[0]
+            except:
+                extracted_text = "Text extraction task failed"
         
         # For non-hand-written documents, use Textract
         else:
-            extracted_text: str = textract.process(filename=file_path)
+
+            if extension == ".pdf": # Textract doesn't easily support PDF
+                reader = PyPDF2.PdfReader(open(file_path, "rb"))
+
+                for page in range(0, len(reader.pages)):
+                    extracted_text += reader.pages[page].extract_text()
+
+            else: # Use Textract for all other documents
+                extracted_text = textract.process(filename=file_path)
 
         return extracted_text
     
 
     def azure_ocr(self,
-                  image) -> str:
+                  file: str,
+                  ext: str) -> str:
         """
-        TODO
+        This function returns the text from handwritten images / PDFs by
+        leveraging the Azure Computer Vision API.
+
+        Args:
+            file: str --> The file path of the image or PDF being processed
+            hand_written: bool --> True if the text being extracted is hand written
+            ext: str --> The extension of the file
+        
+        Returns:
+            The raw text from the image
         """
 
         # Establish Azure endpoint connection
-        key = self.AZURE_CRED["ACCOUNT_KEY"]
-        endpoint = self.AZURE_CRED["END_POINT"]
+        key: str = self.AZURE_CRED["ACCOUNT_KEY"]
+        endpoint: str = self.AZURE_CRED["END_POINT"]
 
         credentials = CognitiveServicesCredentials(key)
         client = ComputerVisionClient(endpoint=endpoint,
                                       credentials=credentials)
 
-        # Prepare image and call endpoint
-        with Image.open(image) as img:
-            with io.BytesIO() as output: # In-memory binary stream of image
-                img.convert(mode="RGB").save(fp=output, format="JPEG") # Ensure image is JPEG format
-                output.seek(0) # Reset binary stream pointer to beginning
+        # Prepare file and call endpoint
+        if ext == ".pdf": # PDF
+            # Call Azure endpoint
+            raw_http_response = client.read_in_stream(image=open(file, "rb"),
+                                                      language="en",
+                                                      raw=True)
+        else: # IMAGE
+            with Image.open(file) as img:
+                with io.BytesIO() as output: # In-memory binary stream of image
+                    img.convert(mode="RGB").save(fp=output, format="JPEG") # Ensure image is JPEG format
+                    output.seek(0) # Reset binary stream pointer to beginning
 
-                # Call Azure endpoint
-                raw_http_response = client.read_in_stream(image=output,
+                    # Call Azure endpoint
+                    raw_http_response = client.read_in_stream(image=output,
                                                             language="en",
                                                             raw=True)
 
@@ -130,21 +147,29 @@ def main():
 
     print("Starting test...\n\n")
     
-    # Word document extraction
+    # Word extraction
     print(f"Word Printed Document Conversion:\n{extractor.extract_text(file_path="test documents/Bioluminescence_Sample_Text.docx")}\n\n")
 
     # Image (hand-written text) extraction
     print(f"JPEG Hand Written Document Conversion:\n{extractor.extract_text(file_path="test documents/write-hand-written-notes-and-assignments-for-you.jpeg", hand_written=True)}\n\n")
 
-    # TODO confirm PDF extraction
+    # PDF printed extraction
+    print(f"PDF Printed Document Conversion:\n{extractor.extract_text(file_path="test documents/4_day_gym_plan.pdf")}\n\n")
 
-    # TODO confirm TXT extraction
+    # PDF (hand-written) extraction
+    print(f"PDF Hand Written Document Conversion:\n{extractor.extract_text(file_path="test documents/4_day_gym_plan.pdf", hand_written=True)}\n\n")
+    
+    # TXT extraction
+    print(f"TXT Printed Document Conversion:\n{extractor.extract_text(file_path="test documents/ComputerScienceFunFacts.txt")}\n\n")
 
-    # TODO confirm CSV extraction
+    # CSV extraction
+    print(f"CSV Printed Document Conversion:\n{extractor.extract_text(file_path="test documents/RandomCompanyData.csv")}\n\n")
 
-    # TODO confirm Excel extraction
+    # Excel extraction
+    print(f"Excel Printed Document Conversion:\n{extractor.extract_text(file_path="test documents/BestRestaurantsCanada2025.xlsx")}\n\n")
 
-    # TODO confirm PowerPoint extraction
+    # PowerPoint extraction
+    print(f"PowerPoint Printed Document Conversion:\n{extractor.extract_text(file_path="test documents/Notebook Lesson XL by Slidesgo.pptx")}\n\n")
 
 
 if __name__ == "__main__":
