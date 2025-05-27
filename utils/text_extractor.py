@@ -2,13 +2,12 @@
 # This file contains utility logic that converts various files' contents to usable text. 
 #
 # Author: Andrew Polyak
-# Version: May 25, 2025
+# Version: May 26, 2025
 ##
 
 import json
 import time
 import io
-
 import pathlib
 
 from PIL import Image
@@ -26,7 +25,8 @@ from azure.cognitiveservices.vision.computervision.models import OperationStatus
 
 class TextExtractor():
     """
-    This class contains functions that extract and return text from files.
+    This class provides `extract_text()`, an interface to extract the text (printed or handwritten)
+    from images, PDFs, Word, Excel, CSV, PowerPoint, & TXT documents, returning the raw text.
     """
     def __init__(self):
         super().__init__()
@@ -57,7 +57,7 @@ class TextExtractor():
         # Hand-written documents require specialized processing
         if hand_written:
             try: # Attempt to use advanced Azure API for handwriting recognition
-                extracted_text = self.azure_ocr(image=file_path, ext=extension)
+                extracted_text = self.azure_ocr(file=file_path, ext=extension)
             
             except:
                 extracted_text = "Text extraction task failed"
@@ -100,7 +100,7 @@ class TextExtractor():
         credentials = CognitiveServicesCredentials(key)
         client = ComputerVisionClient(endpoint=endpoint,
                                       credentials=credentials)
-
+        
         # Prepare file and call endpoint
         if ext == ".pdf": # PDF
             # Call Azure endpoint
