@@ -12,7 +12,7 @@ import pathlib
 
 from PIL import Image
 
-import textract # Encompasses extraction for a good number of types out-of-the-box
+import textract # Encompasses extraction for a good number of file types out-of-the-box
 
 # For other extraction tasks that textract doesn't easily support
 import PyPDF2
@@ -45,7 +45,7 @@ class TextExtractor():
         
         Args:
             file_path: str --> The file path of the document being processed
-            hand_written: bool --> True if the text being extracted is hand written
+            hand_written: bool --> True if the text being extracted is handwritten
         
         Returns:
             The raw text from the document
@@ -54,7 +54,7 @@ class TextExtractor():
         extracted_text: str = ""
         extension = pathlib.Path(file_path).suffix # Get file extension (e.g., .pdf)
 
-        # Hand-written documents require specialized processing
+        # Handwritten documents require specialized processing
         if hand_written:
             try: # Attempt to use advanced Azure API for handwriting recognition
                 extracted_text = self.azure_ocr(file=file_path, ext=extension)
@@ -62,9 +62,8 @@ class TextExtractor():
             except:
                 extracted_text = "Text extraction task failed"
         
-        # For non-hand-written documents, use Textract
+        # For non-handwritten documents, use Textract or PyPDF
         else:
-
             if extension == ".pdf": # Textract doesn't easily support PDF
                 reader = PyPDF2.PdfReader(open(file_path, "rb"))
 
@@ -86,7 +85,6 @@ class TextExtractor():
 
         Args:
             file: str --> The file path of the image or PDF being processed
-            hand_written: bool --> True if the text being extracted is hand written
             ext: str --> The extension of the file
         
         Returns:
