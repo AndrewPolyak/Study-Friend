@@ -32,9 +32,8 @@ class TextExtractor():
         super().__init__()
         
         # Access Azure credentials
-        with open(".venv/azure_credentials.json", "r") as credentials: # TODO fix path prior to release
-            self.AZURE_CRED: json = json.load(credentials)
-            print("Azure credentials successfully loaded")
+        self.AZURE_CRED: json = json.load(open(".venv/azure_credentials.json", "r")) # TODO fix path prior to release
+        print("Azure credentials successfully loaded")
 
 
     def extract_text(self,
